@@ -1,0 +1,11 @@
+# Build outputs
+/build/
+/dist/
+/out/
+
+# Compiled classes (kept out of source control)
+*.class
+
+# OS / editor cruft
+.DS_Store
+*.swp
