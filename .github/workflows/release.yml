@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'          # e.g. v2.0
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g. 2.0)'
+        required: true
+        default: '2.0'
+
+permissions:
+  contents: write     # required to create the GitHub Release
+
+jobs:
+  release:
+    name: Build & publish release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Determine version
+        id: version
+        run: |
+          if [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            # Strip the leading 'v' from the tag (v2.0 -> 2.0)
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build runnable JAR
+        run: ./build.sh "${{ steps.version.outputs.version }}"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: JTextEditor ${{ steps.version.outputs.version }}
+          tag_name: ${{ github.ref_name }}
+          files: dist/JTextEditor-*.jar
+          generate_release_notes: true
+          fail_on_unmatched_files: true

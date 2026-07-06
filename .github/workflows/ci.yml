@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [ master, java-rewrite ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build & package
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Build runnable JAR
+        run: ./build.sh 2.0
+
+      - name: Verify JAR integrity
+        run: |
+          test -f dist/JTextEditor-2.0.jar
+          # The manifest must point at the entry-point class...
+          unzip -p dist/JTextEditor-2.0.jar META-INF/MANIFEST.MF | grep -q '^Main-Class: TextEditor'
+          # ...and both our code and the bundled dependency must be present.
+          jar tf dist/JTextEditor-2.0.jar | grep -q '^TextEditor.class'
+          jar tf dist/JTextEditor-2.0.jar | grep -q '^org/fife/ui/rsyntaxtextarea/RSyntaxTextArea.class'
+
+      - name: Upload JAR artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JTextEditor-jar
+          path: dist/JTextEditor-*.jar
+          if-no-files-found: error
